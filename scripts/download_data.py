@@ -3,18 +3,21 @@
 Prereqs (one-time):
   1. Join the competition + accept the rules:
      https://www.kaggle.com/competitions/nfl-big-data-bowl-2027/rules
-  2. Create an API token at https://www.kaggle.com/settings -> "Create New Token"
-     and save it to ~/.kaggle/kaggle.json (or set KAGGLE_USERNAME / KAGGLE_KEY).
+  2. Have a Kaggle API token ready (kaggle.com/settings -> API -> Create New Token).
+     The script prompts for it if KAGGLE_API_TOKEN isn't set. Note: kagglehub.login()
+     only holds the token in memory, so logging in from a separate command doesn't persist.
 
 Usage:
-  uv run python scripts/download_data.py            # download + unzip + parquet
-  uv run python scripts/download_data.py --skip-download   # just re-convert CSVs
+  uv run python scripts/download_data.py                  # download + parquet
+  uv run python scripts/download_data.py --skip-download  # just re-convert CSVs
 """
 
 from __future__ import annotations
 
 import argparse
-import zipfile
+import os
+import shutil
+from pathlib import Path
 
 import polars as pl
 
@@ -24,18 +27,23 @@ COMPETITION = "nfl-big-data-bowl-2027"
 
 
 def download() -> None:
-    from kaggle.api.kaggle_api_extended import KaggleApi
+    import kagglehub
 
-    api = KaggleApi()
-    api.authenticate()
-    print(f"Downloading {COMPETITION} -> {RAW} (~2.3 GB)...")
-    api.competition_download_files(COMPETITION, path=str(RAW), quiet=False)
+    if kagglehub.auth.get_username() is None:
+        kagglehub.login()
+    print(f"Downloading {COMPETITION} (~2.3 GB, cached by kagglehub)...")
+    src = Path(kagglehub.competition_download(COMPETITION))
 
-    for zf in RAW.glob("*.zip"):
-        print(f"Unzipping {zf.name}...")
-        with zipfile.ZipFile(zf) as z:
-            z.extractall(RAW)
-        zf.unlink()
+    # Hard-link from the kagglehub cache into data/raw (no 2nd copy); copy if on another drive
+    for f in src.rglob("*.csv"):
+        dst = RAW / f.name
+        if dst.exists():
+            continue
+        try:
+            os.link(f, dst)
+        except OSError:
+            shutil.copy2(f, dst)
+        print(f"  {f.name}")
 
 
 def to_parquet() -> None:

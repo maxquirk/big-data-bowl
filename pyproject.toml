@@ -14,8 +14,8 @@ dependencies = [
     "matplotlib>=3.8",
     "seaborn>=0.13",
     "plotly>=5.20",
-    "kaggle>=1.6",
     "tqdm>=4.66",
+    "kagglehub>=1.0.2",
 ]
 
 [project.optional-dependencies]

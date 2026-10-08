@@ -44,3 +44,11 @@ Combine adds `drill_type` (`FORTY_YARD_DASH`, `THREE_CONE_DRILL`, `SHORT_SHUTTLE
 - Column typo in source: `visitor_team_win_probility_added`.
 - `three_cone`, `short_shuttle`, `bench_reps` null for opt-outs.
 - `time` is an ISO-8601 string; `bigdatabowl.load` parses it to datetime.
+- Actual row counts differ from Kaggle's table: game tracking is 3.67M / 7.83M / 11.16M
+  (2023/24/25), `player_play` is 314,197.
+- **Combine `dis` undercounts distance**: a 40-yd dash sums to ~36 yd, while the x-span is ~40.4.
+  Use x/y displacement (`features.py` does).
+- **Combine clips include pre-rep standing time**: start drill clocks at first movement.
+  Sensor 40s then track official times at r=0.92, with a constant ~+0.32 s offset.
+  Sensor 10-yd splits only reach r=0.49 against official, since 10 Hz is too coarse for 10 yd.
+- Only 418 of 510 prospects have a sensor-tracked 40 (793 attempts).

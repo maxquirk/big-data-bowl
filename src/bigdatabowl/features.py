@@ -4,6 +4,10 @@ Conventions:
   * `s` is speed (yd/s), `a` is acceleration magnitude (yd/s^2, unsigned).
   * Signed accel/decel comes from the frame-to-frame change in `s` (`ds_dt`).
   * Heading change uses `dir` wrapped to [-180, 180).
+  * Distances come from x/y, NOT the `dis` column: in Combine data `dis` sums to ~36 yd over
+    a 40-yd dash (x-span ~40.4). Splits use straight-line displacement from the start spot.
+  * Combine clips include standing time before the rep, so drill clocks start at first
+    movement (`s` crossing START_SPEED), and crossings are interpolated between 10 Hz frames.
 """
 
 from __future__ import annotations
@@ -12,6 +16,7 @@ import polars as pl
 
 DT = 0.1  # seconds between frames
 YD_S_TO_MPH = 3600 / 1760
+START_SPEED = 0.5  # yd/s -- "first movement" threshold for drill clocks
 
 ATTEMPT_KEYS = ["event_id", "nfl_id", "drill_type", "drill_name", "attempt"]
 PLAY_KEYS = ["game_id", "play_id", "nfl_id"]
@@ -23,14 +28,16 @@ def _wrap_deg(c: pl.Expr) -> pl.Expr:
 
 
 def add_kinematics(lf: pl.LazyFrame, keys: list[str]) -> pl.LazyFrame:
-    """Per-frame derived signals: elapsed time, signed accel, turn rate, cumulative distance."""
+    """Per-frame derived signals: elapsed time, signed accel, turn rate, path + displacement."""
+    x, y = pl.col("x"), pl.col("y")
     return (
         lf.sort([*keys, "time"])
         .with_columns(
             t=(pl.col("time") - pl.col("time").first()).dt.total_milliseconds().over(keys) / 1000,
             ds_dt=(pl.col("s").diff() / DT).over(keys),
             turn_rate=(_wrap_deg(pl.col("dir").diff()) / DT).over(keys),  # deg/s, signed
-            cum_dis=pl.col("dis").cum_sum().over(keys),
+            step=(x.diff().pow(2) + y.diff().pow(2)).sqrt().fill_null(0).over(keys),
+            disp=((x - x.first()).pow(2) + (y - y.first()).pow(2)).sqrt().over(keys),
         )
         .with_columns(
             # Centripetal-ish "cut load": how hard you're turning while moving fast
@@ -45,7 +52,7 @@ def summarize(lf: pl.LazyFrame, keys: list[str]) -> pl.LazyFrame:
     return lf.group_by(keys).agg(
         n_frames=pl.len(),
         duration=t.max(),
-        distance=pl.col("dis").sum(),
+        distance=pl.col("step").sum(),
         max_speed=s.max(),
         max_speed_mph=s.max() * YD_S_TO_MPH,
         time_to_max_speed=t.filter(s == s.max()).min(),  # first frame at top speed
@@ -60,11 +67,26 @@ def summarize(lf: pl.LazyFrame, keys: list[str]) -> pl.LazyFrame:
     )
 
 
-def split_times(lf: pl.LazyFrame, keys: list[str], marks=(10, 20, 40)) -> pl.LazyFrame:
-    """Time to reach each cumulative distance mark (e.g. sensor 10/20/40-yd splits)."""
-    aggs = [
-        pl.col("t").filter(pl.col("cum_dis") >= m).min().alias(f"t_{m}yd") for m in marks
-    ]
+def _crossing_time(value: pl.Expr, threshold: float) -> pl.Expr:
+    """First time `value` reaches `threshold`, linearly interpolated between frames (in a group)."""
+    hit = value >= threshold
+    t_hit = pl.col("t").filter(hit).first()
+    v_hit = value.filter(hit).first()
+    v_prev = value.shift(1).filter(hit).first()
+    frac = ((threshold - v_prev) / (v_hit - v_prev)).clip(0, 1)
+    return pl.coalesce(t_hit - DT * (1 - frac), t_hit)
+
+
+def split_times(
+    lf: pl.LazyFrame, keys: list[str], marks=(10, 20, 40), from_movement: bool = True
+) -> pl.LazyFrame:
+    """Time to reach each straight-line distance from the start spot (sensor 10/20/40-yd splits).
+
+    from_movement=True starts the clock at first movement (Combine reps); False starts at t=0
+    (game plays, where t=0 is the snap, so reaction time is included).
+    """
+    start = _crossing_time(pl.col("s"), START_SPEED) if from_movement else pl.lit(0.0)
+    aggs = [(_crossing_time(pl.col("disp"), m) - start).alias(f"t_{m}yd") for m in marks]
     out = lf.group_by(keys).agg(aggs)
     if 10 in marks and 40 in marks:
         out = out.with_columns(t_10_40=pl.col("t_40yd") - pl.col("t_10yd"))
@@ -118,7 +140,7 @@ def game_play_features(game_tracking: pl.LazyFrame, post_snap_window: float = 3.
     )
     keys = [*PLAY_KEYS, "season"] if "season" in lf.collect_schema() else PLAY_KEYS
     kin = add_kinematics(lf, keys)
-    return summarize(kin, keys).join(split_times(kin, keys, marks=(5, 10)), on=keys, how="left")
+    return summarize(kin, keys).join(split_times(kin, keys, marks=(5, 10), from_movement=False), on=keys, how="left")
 
 
 def game_player_season_features(play_feats: pl.LazyFrame) -> pl.LazyFrame:

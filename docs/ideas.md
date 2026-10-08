@@ -11,6 +11,13 @@ Combine sensor top speed vs. in-game p99 top speed per player. Ratio = how much 
 is *usable* in pads/traffic. Questions: is retention position-specific? Does low retention
 predict busts better than a slow 40? Starter: [`notebooks/01_speed_translation.py`](../notebooks/01_speed_translation.py).
 
+**First results (2026-10-08, n=396):** position alone explains 90% of game top speed (adj R^2 .897).
+Within position, sensor top speed (r=.33) is a slightly better signal than the official 40
+(r=-.30). With both in the model, the 40 drops out (p=.61) and sensor top speed stays
+significant (p=.005), so the sensor carries the 40's information plus some more. Caveat: game
+top speed depends on usage. The low-retention list is mostly backup linemen with <100 snaps
+who rarely open up, so condition on role/route before calling anything a "bust signal".
+
 ### 2. Brake & Re-Accelerate (WR/DB change of direction)
 From route/backpedal drills: max decel into the break, speed bled through the cut, time to
 re-accelerate. Link to `separation_at_pass_forward` (WR) and separation allowed (DB). The

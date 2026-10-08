@@ -7,7 +7,9 @@ for setup, docs/data.md for schema, docs/ideas.md for direction.
 - `uv sync --extra dev` -- install
 - `uv run pytest -q` -- feature-math tests (synthetic data, no download needed)
 - `uv run ruff check .` -- lint
-- `uv run python scripts/download_data.py` -- needs Kaggle token + accepted rules
+- `uv run python scripts/download_data.py` -- needs Kaggle token + accepted rules. Must run in the
+  user's own terminal (it prompts for the token). `kagglehub.login()` (v1.0.2) keeps the token in
+  memory only, so logging in from a separate command does NOT carry over to a later download.
 
 ## Conventions
 - Package is `bigdatabowl`, NOT `bdb` -- `bdb` shadows Python's stdlib debugger module.

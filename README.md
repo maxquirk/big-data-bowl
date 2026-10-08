@@ -20,8 +20,8 @@ uv sync --extra dev
 Get the data (one-time):
 
 1. Join the competition and accept the rules on Kaggle.
-2. Create an API token at <https://www.kaggle.com/settings> and save it as `~/.kaggle/kaggle.json`.
-3. Download (~2.3 GB) and convert to Parquet:
+2. Create an API token at <https://www.kaggle.com/settings> (API -> Create New Token).
+3. Download (~2.3 GB) and convert to Parquet. It prompts for the token unless `KAGGLE_API_TOKEN` is set:
 
 ```bash
 uv run python scripts/download_data.py
