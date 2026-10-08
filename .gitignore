@@ -1,0 +1,33 @@
+# Competition data is CC BY-NC 4.0 and ~2.3 GB -- never commit it
+data/raw/*
+data/processed/*
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+*.zip
+*.parquet
+*.csv
+
+# Outputs (keep figures folder, regenerate contents)
+outputs/*
+!outputs/figures/
+outputs/figures/*
+!outputs/figures/.gitkeep
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.ipynb_checkpoints/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+
+# Secrets
+.env
+kaggle.json
+
+# OS / editors
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
