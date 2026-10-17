@@ -32,6 +32,40 @@ Caveat: some "attempt pairs" are different tasks. Per the host, PASS_RUSH_DRILL 
 and right = swim, with no field marking which. Low test-retest there partly reflects
 technique, not noise.
 
+## One signal per position (R5, 2026-10-16)
+
+[`research/r5_position_scan.py`](../research/r5_position_scan.py) matches each group's Combine
+drills to the *same movement* in game tracking (speed<->speed, burst<->burst/drill time,
+cuts<->cuts/drill time, NGS outcomes<->burst/drill time). Correlations are within position, on
+smoothed metrics averaged over attempts. `p_adj` is a family-wise permutation p over every
+matched test for that group (1,000 shuffles). "Replicates" = same sign and size when game
+metrics are rebuilt from odd vs even game_ids. That checks game-side noise only; it uses the
+same players, so it doesn't test player sampling.
+
+| Group | Combine metric -> game metric | n | r | p_adj (tests) | Odd / even games | Tier |
+|---|---|---|---|---|---|---|
+| **EDGE** | 40 sensor top speed -> top speed in first 3 s of rush | 43 | +.54 | **.015** (279) | +.50 / +.48 | **Confirmed** |
+| **IDL** | Run-the-Hoop time -> NGS get-off (slower hoop = slower get-off) | 41 | +.55 | **.022** (217) | +.46 / +.56 | **Confirmed** |
+| **WR** | 40 sensor top speed -> route top speed (p90) | 76 | +.52 | .086 (378) | +.54 / +.57 | Strong lead |
+| **S** | Backpedal-and-45 transition top speed -> in-game top speed | 44 | +.51 | .26 (192) | +.39 / +.47 | Lead |
+| **CB** | Line-drill time -> ground covered 2 s after snap (faster drill = more ground) | 39 | -.39 | .55 (192) | -.40 / -.40 | Lead |
+| **OL** | Long-pull drill time -> run-block top speed, first 3 s | 68 | -.43 | .68* | -.36 / -.43 | Lead |
+| **TE** | Hook-route accel -> YAC over expected | 28 | +.50 | .48 (184) | +.35 / +.43 | Weak (tiny n) |
+
+\*OL's matched-family winner (mirror-drill accel -> pass-set) did not replicate (-.28 / +.02),
+so the pull-drill pair is shown instead. It is football-logical and replicates, but it only
+passes the looser all-tests family (528 tests).
+
+Notes:
+- EDGE: the official 10-yd split is even stronger for the same outcome (r=-.63). The sensor
+  top speed adds nothing beyond it (p=.23), so EDGE is "speed travels", not "sensor beats
+  stopwatch".
+- IDL: hoop time adds over weight + broad jump (adj R^2 .34 -> .44, p=.014). This is the
+  cleanest "tracking adds information" result.
+- WR: sensor top speed nearly beats the official 40 head-to-head (p=.056, with the 40 at
+  p=.32 once both are in the model).
+- LB / RB / FB / QB: <=3 players with Combine tracking, so none can be tested.
+
 ## Recommended pitch: "What survives the trip from Indy to Sunday"
 
 A reliability-first framework. It turns the null results above into the contribution:
