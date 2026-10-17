@@ -18,3 +18,7 @@ for setup, docs/data.md for schema, docs/ideas.md for direction.
 - Prefer p95/p99 over raw max for tracking-derived peaks (sensor glitches).
 - Signed accel/decel comes from `ds_dt` (diff of `s`); the raw `a` column is unsigned magnitude.
 - Heading differences must be wrapped to [-180, 180) (`features._wrap_deg`).
+- Run research scripts with `uv run python -I -X utf8 research/<file>.py` (`-I` ignores
+  PYTHONIOENCODING, so use `-X utf8` or polars tables crash on cp1252).
+- Single-frame accel/decel peaks are ~.3 test-retest reliable at 10 Hz. Smooth (5-frame
+  rolling) or use p90 before using them as traits. See docs/ideas.md scorecard.

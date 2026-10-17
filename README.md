@@ -47,6 +47,7 @@ scripts/download_data.py   Kaggle download -> data/raw -> Parquet in data/proces
 src/bigdatabowl/load.py    Lazy loaders for every table
 src/bigdatabowl/features.py Speed / burst / braking / change-of-direction metrics (shared Combine + game)
 notebooks/                 Analyses (jupytext percent-format .py; run in VS Code or convert to .ipynb)
+research/                  Idea-vetting scans (r1 first; writes cached features to data/processed/_*.parquet)
 docs/data.md               Condensed data dictionary + join map
 docs/ideas.md              Ranked project ideas and football-data gotchas
 tests/                     Synthetic-data checks on the feature math
